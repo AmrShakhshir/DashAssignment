@@ -19,18 +19,34 @@ def generate_Dropdown(list_of_students):
 
 def getSum(subjectName):
     sum=0
-    Marks=df[df['Mark'] == subjectName]
-    for mark in Marks['Mark']:
-        type(int(mark))
-        # sum+=2
-        if (subjectName == Marks['Subject']):
-            sum +=mark
-    return sum
+    GroupDataSubject=df[df['Subject'] == subjectName]
+    Marks=GroupDataSubject['Mark']
+    for mark in Marks:
+        # type(int(mark))
+        sum +=mark
+    avg= sum/ (len(Marks))
+    return round(avg,2)
 
 mAdvWebTech = getSum('AdvWebTech')
 mBDLA = getSum('BDLA')
 mLA = getSum('LA')
 mLAVA = getSum('LAVA')
+
+
+
+def getDuration(subjectName):
+    sum=0
+    GroupDataSubject=df[df['Subject'] == subjectName]
+    Durations=GroupDataSubject['Duration']
+    for duration in Durations:
+        sum +=duration
+    avg= sum/ (len(Durations))
+    return round(avg,2)
+
+dAdvWebTech = getDuration('AdvWebTech')
+dBDLA = getDuration('BDLA')
+dLA = getDuration('LA')
+dLAVA = getDuration('LAVA')
 
 
 app.layout = html.Div(children=[
@@ -67,7 +83,7 @@ app.layout = html.Div(children=[
             children=([
 
                 dcc.Graph(id='bar_chart', className='six columns'),
-                dcc.Graph(id='pie_graph', className='six columns', )
+                dcc.Graph(id='dot_chart', className='six columns', )
 
             ])),
 
@@ -75,6 +91,7 @@ app.layout = html.Div(children=[
 ])
 
 colors = {'marker_color': '#6495ED', 'menBar': '#00008B', 'text': '#FFFFF'}
+
 @app.callback(
     Output('bar_chart', 'figure'),
     [Input('student_name', 'value')])
@@ -84,15 +101,35 @@ def update_graph(student_name_value):
         return{
                 'data': [dict(
                 x=['AdvWebTech', 'BDLA', 'LA', 'LAVA'],
-                y=[ 10, 2.5, 3, mLAVA],
-                # mode='lines+markers',
-                # customdata=group_data_by_name['Subject'].unique(),
+                y=[ mAdvWebTech, mBDLA, mLA, mLAVA],
+
                 marker={'color': colors['marker_color']},
                 type = 'bar'
 
             )],
-            'layout': dict(
-                margin={'l': 40, 'b': 30, 't': 30, 'r': 0},
+                        'layout': dict(
+                xaxis={
+                    'title': 'Grades',
+                    'style': {
+                        'marginRight': 30,
+                    },
+                    'font': {
+                        'color': colors['text'],
+                        'size': 16,
+                    },
+                },
+                yaxis={
+                    'title': 'Courses',
+                    'style': {
+                        'margin': {'l': 0, 'b': 50, 't': 0, 'r': 50},
+                    },
+                    'font': {
+                        'color': colors['text'],
+                        'size': 16,
+                    },
+                    'dtick': 0.5, #scale y-axis
+                },
+                margin={'l': 40, 'b': 60, 't': 30, 'r': 0},
                 title='Students average grades',
             )
             }
@@ -101,9 +138,7 @@ def update_graph(student_name_value):
             'data': [dict(
                 x=group_data_by_name['Subject'].unique(),
                 y=group_data_by_name['Mark'],
-                mode='lines+markers',
-                # customdata=group_data_by_name['Subject'].unique(),
-                # marker={'color': colors['marker_color']},
+                marker={'color': colors['marker_color']},
                 type = 'bar'
 
             )],
@@ -127,9 +162,96 @@ def update_graph(student_name_value):
                         'color': colors['text'],
                         'size': 16,
                     },
+                    'dtick': 0.5, #scale y-axis
                 },
-                margin={'l': 40, 'b': 30, 't': 30, 'r': 0},
-                title='Students average grades',
+                margin={'l': 40, 'b': 60, 't': 30, 'r': 0},
+                title='{} grades'.format(student_name_value),
+            )
+        }
+
+
+
+@app.callback(
+    Output('dot_chart', 'figure'),
+    [Input('student_name', 'value')])
+def dot_Chart(student_name_value):
+    group_data_by_name = df[df['Name'] == student_name_value]
+    if group_data_by_name.empty:
+        return{
+                'data': [dict(
+                x=['AdvWebTech', 'BDLA', 'LA', 'LAVA'],
+                y=[ dAdvWebTech, dBDLA, dLA, dLAVA],
+                mode='markers',
+                marker={
+                    'size':15,
+                    'line':{'width':0.5,'color': colors['marker_color'] }
+                    },
+                type = 'scatter'
+
+            )],
+                        'layout': dict(
+                xaxis={
+                    'title': 'Hours spend per week',
+                    'style': {
+                        'marginRight': 30,
+                    },
+                    'font': {
+                        'color': colors['text'],
+                        'size': 16,
+                    },
+                },
+                yaxis={
+                    'title': 'Courses',
+                    'style': {
+                        'margin': {'l': 0, 'b': 50, 't': 0, 'r': 50},
+                    },
+                    'font': {
+                        'color': colors['text'],
+                        'size': 16,
+                    },
+                    'dtick': 0.5, #scale y-axis
+                },
+                margin={'l': 40, 'b': 60, 't': 30, 'r': 0},
+                title='Average weekly hours spend by students',
+            )
+            }
+    else:
+        return {
+            'data': [dict(
+                x=group_data_by_name['Subject'].unique(),
+                y=group_data_by_name['Duration'],
+                mode='markers',
+                marker={
+                    'size':15,
+                    'line':{'width':0.5,'color': colors['marker_color'] }
+                    },
+                type = 'scatter'
+
+            )],
+            'layout': dict(
+                xaxis={
+                    'title': 'Hours spend per week',
+                    'style': {
+                        'marginRight': 30,
+                    },
+                    'font': {
+                        'color': colors['text'],
+                        'size': 16,
+                    },
+                },
+                yaxis={
+                    'title': 'Courses',
+                    'style': {
+                        'margin': {'l': 0, 'b': 50, 't': 0, 'r': 50},
+                    },
+                    'font': {
+                        'color': colors['text'],
+                        'size': 16,
+                    },
+                    'dtick': 0.5, #scale y-axis
+                },
+                margin={'l': 40, 'b': 60, 't': 30, 'r': 0},
+                title='Average weekly hours spend by ' + student_name_value,
             )
         }
         
