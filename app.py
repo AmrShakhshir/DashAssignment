@@ -6,11 +6,14 @@ from dash.dependencies import Input, Output, State
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-server = app.server
+server = app.server #to deploy on Heroku
 
-df = pd.read_csv('assets/students.csv')
-list_of_names = df['Name'].unique()
+df = pd.read_csv('assets/data.csv')
+list_of_names = df['students'].unique()
 
+info1='No course clicked in grades graph'
+info2='No course clicked in weekly hours graph'
+infoChanged=False
 
 def generate_Dropdown(list_of_students):
     return dcc.Dropdown(
@@ -21,8 +24,8 @@ def generate_Dropdown(list_of_students):
 
 def getSum(subjectName):
     sum=0
-    GroupDataSubject=df[df['Subject'] == subjectName]
-    Marks=GroupDataSubject['Mark']
+    GroupDataSubject=df[df['courses'] == subjectName]
+    Marks=GroupDataSubject['grades']
     for mark in Marks:
         # type(int(mark))
         sum +=mark
@@ -38,8 +41,8 @@ mLAVA = getSum('LAVA')
 
 def getDuration(subjectName):
     sum=0
-    GroupDataSubject=df[df['Subject'] == subjectName]
-    Durations=GroupDataSubject['Duration']
+    GroupDataSubject=df[df['courses'] == subjectName]
+    Durations=GroupDataSubject['week_hours']
     for duration in Durations:
         sum +=duration
     avg= sum/ (len(Durations))
@@ -49,7 +52,6 @@ dAdvWebTech = getDuration('AdvWebTech')
 dBDLA = getDuration('BDLA')
 dLA = getDuration('LA')
 dLAVA = getDuration('LAVA')
-
 
 app.layout = html.Div(children=[
     html.Div(className=' container row', children=[
@@ -74,18 +76,18 @@ app.layout = html.Div(children=[
                 children=[
                     generate_Dropdown(list_of_names),
                 ]),
-            html.Div(className='four columns',
+            html.Div(className='five columns', id='status',
                 children=[
-                    html.H1('No course clicked ingrades graph', style={'color': 'darkgrey', 'float': 'left','font-size':'12pt'}),
-                    html.H1('No course clicked ingrades graph', style={'color': 'darkgrey', 'float': 'left','font-size':'12pt'})
+                    html.P(info1, id='info1', style={'float': 'left','font-size':'12pt'}),
+                    html.P(info2, id='info2', style={'float': 'left','font-size':'12pt'})
 
                 ]),
         ]),
             html.Div(className='twelve columns', style={'marginTop': 50, },
             children=([
 
-                dcc.Graph(id='bar_chart', className='six columns'),
-                dcc.Graph(id='dot_chart', className='six columns', )
+                dcc.Graph(id='bar_chart', className='six columns', clickData={'points': []}),
+                dcc.Graph(id='dot_chart', className='six columns', clickData={'points': []})
 
             ])),
 
@@ -98,12 +100,12 @@ colors = {'marker_color': '#6495ED', 'menBar': '#00008B', 'text': '#FFFFF'}
     Output('bar_chart', 'figure'),
     [Input('student_name', 'value')])
 def update_graph(student_name_value):
-    group_data_by_name = df[df['Name'] == student_name_value]
+    group_data_by_name = df[df['students'] == student_name_value]
     if group_data_by_name.empty:
         return{
                 'data': [dict(
-                x=['AdvWebTech', 'BDLA', 'LA', 'LAVA'],
-                y=[ mAdvWebTech, mBDLA, mLA, mLAVA],
+                x=['AdvWebTech', 'LA' , 'LAVA','BDLA'],
+                y=[ mAdvWebTech, mLA, mLAVA, mBDLA],
 
                 marker={'color': colors['marker_color']},
                 type = 'bar'
@@ -138,8 +140,8 @@ def update_graph(student_name_value):
     else:
         return {
             'data': [dict(
-                x=group_data_by_name['Subject'].unique(),
-                y=group_data_by_name['Mark'],
+                x=group_data_by_name['courses'].unique(),
+                y=group_data_by_name['grades'],
                 marker={'color': colors['marker_color']},
                 type = 'bar'
 
@@ -175,14 +177,14 @@ def update_graph(student_name_value):
 
 @app.callback(
     Output('dot_chart', 'figure'),
-    [Input('student_name', 'value')])
-def dot_Chart(student_name_value):
-    group_data_by_name = df[df['Name'] == student_name_value]
+    [Input('student_name', 'value'), Input('dot_chart', 'clickData')])
+def dot_Chart(student_name_value, clickdataValue):
+    group_data_by_name = df[df['students'] == student_name_value]
     if group_data_by_name.empty:
         return{
                 'data': [dict(
-                x=['AdvWebTech', 'BDLA', 'LA', 'LAVA'],
-                y=[ dAdvWebTech, dBDLA, dLA, dLAVA],
+                x=['AdvWebTech', 'LA' , 'LAVA','BDLA'],
+                y=[ dAdvWebTech, dLA, dLAVA,dBDLA],
                 mode='markers',
                 marker={
                     'size':15,
@@ -220,8 +222,8 @@ def dot_Chart(student_name_value):
     else:
         return {
             'data': [dict(
-                x=group_data_by_name['Subject'].unique(),
-                y=group_data_by_name['Duration'],
+                x=group_data_by_name['courses'].unique(),
+                y=group_data_by_name['week_hours'],
                 mode='markers',
                 marker={
                     'size':15,
@@ -250,13 +252,45 @@ def dot_Chart(student_name_value):
                         'color': colors['text'],
                         'size': 16,
                     },
-                    'dtick': 0.5, #scale y-axis
+                    'dtick': 1, #scale y-axis
                 },
                 margin={'l': 40, 'b': 60, 't': 30, 'r': 0},
                 title='Average weekly hours spend by ' + student_name_value,
             )
         }
         
+@app.callback(
+    Output('status', 'children'),
+    [Input('dot_chart', 'clickData'), Input('bar_chart', 'clickData')])
+def state_one(clickdataValue1,clickdataValue2):
+    global info1, info2
+
+    clickData1 = clickdataValue1
+    clickData2 = clickdataValue2
+    
+    if clickData1["points"] != [] :
+        data= clickdataValue1
+        msgX=data['points'][0]['x']
+        msgY=data['points'][0]['y']
+        infoMsg2= 'Course: '+msgX+'-Hours/Week: '+ str(msgY)
+        info2 = infoMsg2
+
+        print (info1)
+        print (info2)
+
+    if clickData2["points"] != [] :
+        data= clickdataValue2
+        msgX=data['points'][0]['x']
+        msgY=data['points'][0]['y']
+        infoMsg1= 'Course: '+msgX+'- Grade: '+ str(msgY)
+        info1 = infoMsg1
+
+    return  html.Div([
+        html.P(info1, id='info1', style={ 'float': 'left','font-size':'12pt'}),
+        html.P(info2, id='info2', style={ 'float': 'left','font-size':'12pt'})
+    ])
+    
+    
 
 if __name__ == '__main__':
     app.run_server(debug=True)
