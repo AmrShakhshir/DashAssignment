@@ -13,7 +13,7 @@ list_of_names = df['students'].unique()
 
 info1='No course clicked in grades graph'
 info2='No course clicked in weekly hours graph'
-infoChanged=False
+
 
 def generate_Dropdown(list_of_students):
     return dcc.Dropdown(
@@ -27,7 +27,6 @@ def getSum(subjectName):
     GroupDataSubject=df[df['courses'] == subjectName]
     Marks=GroupDataSubject['grades']
     for mark in Marks:
-        # type(int(mark))
         sum +=mark
     avg= sum/ (len(Marks))
     return round(avg,2)
@@ -76,12 +75,7 @@ app.layout = html.Div(children=[
                 children=[
                     generate_Dropdown(list_of_names),
                 ]),
-            html.Div(className='five columns', id='status',
-                children=[
-                    html.P(info1, id='info1', style={'float': 'left','font-size':'12pt'}),
-                    html.P(info2, id='info2', style={'float': 'left','font-size':'12pt'})
-
-                ]),
+            html.Div(className='five columns', id='status'),
         ]),
             html.Div(className='twelve columns', style={'marginTop': 50, },
             children=([
@@ -177,8 +171,8 @@ def update_graph(student_name_value):
 
 @app.callback(
     Output('dot_chart', 'figure'),
-    [Input('student_name', 'value'), Input('dot_chart', 'clickData')])
-def dot_Chart(student_name_value, clickdataValue):
+    [Input('student_name', 'value')])
+def dot_Chart(student_name_value):
     group_data_by_name = df[df['students'] == student_name_value]
     if group_data_by_name.empty:
         return{
@@ -263,7 +257,8 @@ def dot_Chart(student_name_value, clickdataValue):
     Output('status', 'children'),
     [Input('dot_chart', 'clickData'), Input('bar_chart', 'clickData')])
 def state_one(clickdataValue1,clickdataValue2):
-    global info1, info2
+    info1='No course clicked in grades graph'
+    info2='No course clicked in weekly hours graph'
 
     clickData1 = clickdataValue1
     clickData2 = clickdataValue2
@@ -275,9 +270,6 @@ def state_one(clickdataValue1,clickdataValue2):
         infoMsg2= 'Course: '+msgX+'-Hours/Week: '+ str(msgY)
         info2 = infoMsg2
 
-        print (info1)
-        print (info2)
-
     if clickData2["points"] != [] :
         data= clickdataValue2
         msgX=data['points'][0]['x']
@@ -286,8 +278,9 @@ def state_one(clickdataValue1,clickdataValue2):
         info1 = infoMsg1
 
     return  html.Div([
-        html.P(info1, id='info1', style={ 'float': 'left','font-size':'12pt'}),
-        html.P(info2, id='info2', style={ 'float': 'left','font-size':'12pt'})
+        html.H6(info1, id='info1', style={ 'float': 'left','font-size':'12pt', 'margin-top': '0', 'margin-bottom': '0'}),
+        html.Br(),
+        html.H6(info2, id='info2', style={ 'float': 'left','font-size':'12pt', 'margin-top': '0', 'margin-bottom': '0'})
     ])
     
     
